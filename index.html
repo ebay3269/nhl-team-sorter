@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>NHL Team Sorter</title>
+  <link href="https://fonts.googleapis.com/css2?family=Josefin+Slab:wght@600&display=swap" rel="stylesheet" />
+  <style>
+    body {
+      background-color: #ffffff;
+      color: #000;
+      font-family: 'Josefin Slab', serif;
+      text-align: center;
+      width: 600px;
+      margin: 0 auto;
+    }
+
+    h1 {
+      margin-top: 2rem;
+      font-size: 1.8rem;
+    }
+
+    #mainTable {
+      font-size: 18px;
+      text-align: center;
+      width: 410px;
+      margin: 20px auto;
+      border-spacing: 10px 5px;
+    }
+
+    #leftField, #rightField, .middleField {
+      width: 120px;
+      height: 80px;
+      border: 1px solid #000;
+      cursor: pointer;
+      vertical-align: middle;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .middleField {
+      background: #f2f2f2;
+    }
+
+    table.result {
+      width: 250px;
+      margin: 2rem auto;
+      border-collapse: collapse;
+      font-size: 16px;
+    }
+
+    table.result th, table.result td {
+      border: 1px solid #000;
+      padding: 6px;
+    }
+
+    table.result th {
+      background: #000;
+      color: #fff;
+    }
+
+    footer {
+      margin-top: 2rem;
+      font-size: 12px;
+      color: #555;
+    }
+
+    footer a {
+      color: #5b17ba;
+      text-decoration: none;
+    }
+
+    footer a:hover {
+      color: #945ce3;
+    }
+  </style>
+</head>
+
+<body>
+  <h1>NHL Team Sorter</h1>
+  <p>
+    Pick the team you like better in each matchup to generate a ranked list of your favorite teams.  
+    Selecting “No Opinion” or “I Like Both” too often will reduce sorting accuracy.
+  </p>
+
+  <div id="battleNumber"><b>Battle #1<br>0% sorted.</b></div>
+
+  <table id="mainTable">
+    <tr>
+      <td id="leftField" onclick="if(finishFlag==0) sortList(-1);"></td>
+      <td class="middleField" onclick="if(finishFlag==0) sortList(0);">I Like Both</td>
+      <td id="rightField" onclick="if(finishFlag==0) sortList(1);"></td>
+    </tr>
+    <tr>
+      <td colspan="3" class="middleField" onclick="if(finishFlag==0) sortList(0);">No Opinion</td>
+    </tr>
+  </table>
+
+  <div id="resultField"></div>
+
+  <footer>
+    <p>Original code by <a href="https://jesseepinkman.tumblr.com/">jesseepinkman</a>.  
+    Adapted for GitHub by <a href="#">you</a>.</p>
+  </footer>
+
+  <script>
+    const namMember = [
+      "Anaheim Ducks","Boston Bruins","Buffalo Sabres","Calgary Flames","Carolina Hurricanes",
+      "Chicago Blackhawks","Colorado Avalanche","Columbus Blue Jackets","Dallas Stars",
+      "Detroit Red Wings","Edmonton Oilers","Florida Panthers","Los Angeles Kings",
+      "Minnesota Wild","Montréal Canadiens","Nashville Predators","New Jersey Devils",
+      "New York Islanders","New York Rangers","Ottawa Senators","Philadelphia Flyers",
+      "Pittsburgh Penguins","San Jose Sharks","Seattle Kraken","St. Louis Blues",
+      "Tampa Bay Lightning","Toronto Maple Leafs","Utah Mammoth","Vancouver Canucks",
+      "Vegas Golden Knights","Washington Capitals","Winnipeg Jets"
+    ];
+
+    let lstMember = [], parent = [], equal = [], rec = [];
+    let cmp1, cmp2, head1, head2, nrec, numQuestion, totalSize, finishSize, finishFlag;
+
+    function initList() {
+      let n = 0, mid;
+      lstMember[n] = [];
+      for (let i = 0; i < namMember.length; i++) lstMember[n][i] = i;
+      parent[n] = -1; totalSize = 0; n++;
+
+      for (let i = 0; i < lstMember.length; i++) {
+        if (lstMember[i].length >= 2) {
+          mid = Math.ceil(lstMember[i].length / 2);
+          lstMember[n] = lstMember[i].slice(0, mid); totalSize += lstMember[n].length; parent[n] = i; n++;
+          lstMember[n] = lstMember[i].slice(mid); totalSize += lstMember[n].length; parent[n] = i; n++;
+        }
+      }
+
+      rec = Array(namMember.length).fill(0);
+      equal = Array(namMember.length + 1).fill(-1);
+      nrec = 0; cmp1 = lstMember.length - 2; cmp2 = lstMember.length - 1;
+      head1 = 0; head2 = 0; numQuestion = 1; finishSize = 0; finishFlag = 0;
+    }
+
+    function sortList(flag) {
+      if (flag < 0) processSelection(lstMember[cmp1], head1++);
+      else if (flag > 0) processSelection(lstMember[cmp2], head2++);
+      else tieSelection();
+
+      if (head1 == lstMember[cmp1].length && head2 == lstMember[cmp2].length) mergeLists();
+
+      if (cmp1 < 0) {
+        document.getElementById("battleNumber").innerHTML = `Battle #${numQuestion - 1}<br>${Math.floor(finishSize * 100 / totalSize)}% sorted.`;
+        showResult(); finishFlag = 1;
+      } else showImage();
+    }
+
+    function processSelection(list, index) {
+      rec[nrec++] = list[index];
+      finishSize++;
+      while (equal[rec[nrec - 1]] !== -1) {
+        rec[nrec] = equal[rec[nrec - 1]];
+        nrec++; finishSize++;
+      }
+    }
+
+    function tieSelection() {
+      processSelection(lstMember[cmp1], head1++);
+      equal[rec[nrec - 1]] = lstMember[cmp2][head2];
+      processSelection(lstMember[cmp2], head2++);
+    }
+
+    function mergeLists() {
+      const parentList = parent[cmp1];
+      lstMember[parentList] = [...rec];
+      lstMember.pop(); lstMember.pop();
+      cmp1 -= 2; cmp2 -= 2; head1 = 0; head2 = 0;
+      rec.fill(0); nrec = 0;
+    }
+
+    function showResult() {
+      let ranking = 1, sameRank = 1, str = `
+        <table class="result">
+          <tr><th>Rank</th><th>Team</th></tr>`;
+      for (let i = 0; i < namMember.length; i++) {
+        str += `<tr><td>${ranking}</td><td>${namMember[lstMember[0][i]]}</td></tr>`;
+        if (i < namMember.length - 1) {
+          if (equal[lstMember[0][i]] == lstMember[0][i + 1]) sameRank++;
+          else { ranking += sameRank; sameRank = 1; }
+        }
+      }
+      str += "</table>";
+      document.getElementById("resultField").innerHTML = str;
+    }
+
+    function showImage() {
+      const str0 = `Battle #${numQuestion}<br>${Math.floor(finishSize * 100 / totalSize)}% sorted.`;
+      const str1 = namMember[lstMember[cmp1][head1]];
+      const str2 = namMember[lstMember[cmp2][head2]];
+      document.getElementById("battleNumber").innerHTML = str0;
+      document.getElementById("leftField").innerHTML = str1;
+      document.getElementById("rightField").innerHTML = str2;
+      numQuestion++;
+    }
+
+    initList();
+    showImage();
+  </script>
+</body>
+</html>
